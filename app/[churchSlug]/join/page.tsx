@@ -1,19 +1,32 @@
-export default function JoinPage({
+import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { MemberJoinForm } from '@/components/forms/MemberJoinForm'
+
+export default async function JoinPage({
   params,
 }: {
   params: { churchSlug: string }
 }) {
+  // Verify church exists
+  const church = await prisma.church.findUnique({
+    where: { slug: params.churchSlug },
+  })
+
+  if (!church) {
+    redirect('/')
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <h1 className="text-3xl font-bold mb-6 text-center">Join Our Church</h1>
-        <p className="text-gray-600 mb-8 text-center">
-          Fill out the form below to connect with us
-        </p>
-        {/* Member registration form will be implemented in Phase 2 */}
-        <div className="bg-gray-50 p-8 rounded-lg text-center">
-          <p className="text-gray-500">Member registration form coming soon</p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-2xl w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2">{church.name}</h1>
+          <h2 className="text-2xl text-gray-700 mb-4">Join Our Church Family</h2>
+          <p className="text-gray-600">
+            Welcome! Please fill out this form to join our church directory.
+          </p>
         </div>
+        <MemberJoinForm churchSlug={params.churchSlug} churchId={church.id} />
       </div>
     </main>
   )

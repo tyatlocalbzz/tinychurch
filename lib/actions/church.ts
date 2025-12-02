@@ -107,3 +107,51 @@ export async function checkSlugAvailability(slug: string) {
     return { available: false, error: 'Failed to check availability' }
   }
 }
+
+interface MemberData {
+  name: string
+  email?: string
+  phone?: string
+}
+
+interface JoinChurchData {
+  householdName: string
+  address?: string
+  members: MemberData[]
+}
+
+export async function joinChurch(churchId: string, data: JoinChurchData) {
+  try {
+    // Verify church exists
+    const church = await prisma.church.findUnique({
+      where: { id: churchId },
+    })
+
+    if (!church) {
+      return { error: 'Church not found' }
+    }
+
+    // Generate household ID for this family
+    const householdId = `household_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Create all family members with pending status
+    await prisma.member.createMany({
+      data: data.members.map(member => ({
+        churchId,
+        householdId,
+        householdName: data.householdName,
+        name: member.name,
+        email: member.email || null,
+        phone: member.phone || null,
+        address: data.address || null,
+        role: 'member',
+        status: 'pending',
+      })),
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Join church error:', error)
+    return { error: 'Failed to submit registration. Please try again.' }
+  }
+}

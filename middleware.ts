@@ -54,11 +54,15 @@ export async function middleware(request: NextRequest) {
   // Check if path is a join form (public)
   const isJoinPath = path.match(/^\/[^/]+\/join$/)
 
+  // Check if path is a pending status page (public)
+  const isPendingPath = path.match(/^\/[^/]+\/pending$/)
+
   // Allow public paths and specific public church routes
   if (
     publicPaths.includes(path) ||
     isVisitorPath ||
     isJoinPath ||
+    isPendingPath ||
     path.startsWith('/_next') ||
     path.startsWith('/api')
   ) {
