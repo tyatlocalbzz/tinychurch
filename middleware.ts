@@ -1,40 +1,6 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const { data, error } = await supabase.auth.getClaims()
-  const user = error ? null : data
-
-  // Protected routes logic
   const path = request.nextUrl.pathname
 
   // Public paths that don't require authentication
@@ -65,24 +31,21 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/_next') ||
     path.startsWith('/api')
   ) {
-    return supabaseResponse
+    return NextResponse.next()
   }
 
-  // For all other paths, require authentication
-  if (!user) {
+  // For protected routes, check if user has Supabase auth cookie
+  const hasAuthCookie = request.cookies.has('sb-access-token') ||
+                         request.cookies.has('sb-dcnnwcnwakvrsydipokl-auth-token')
+
+  if (!hasAuthCookie) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/auth/login'
     redirectUrl.searchParams.set('next', path)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Check if user is trying to access admin routes
-  if (path.match(/^\/[^/]+\/admin/)) {
-    // TODO: In future, check if user has admin role
-    // For now, allow if authenticated
-  }
-
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {
