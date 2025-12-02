@@ -28,12 +28,11 @@ export async function middleware(request: NextRequest) {
   )
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getClaims()
+  const user = error ? null : data
 
   // Protected routes logic
   const path = request.nextUrl.pathname
