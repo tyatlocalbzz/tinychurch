@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Church {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  pastorEmail String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members        Member[]
+  visitors       Visitor[]
+  groups         Group[]
+  prayerRequests PrayerRequest[]
+  emailLogs      EmailLog[]
+
+  @@index([slug])
+}
+
+model Member {
+  id             String   @id @default(cuid())
+  churchId       String
+  householdId    String
+  householdName  String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  role           String   @default("member") // "admin" or "member"
+  status         String   @default("pending") // "pending" or "approved"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  church              Church            @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  groupMemberships    GroupMember[]
+  prayerRequests      PrayerRequest[]
+  sentEmails          EmailLog[]
+
+  @@index([churchId])
+  @@index([householdId])
+  @@index([email])
+  @@index([status])
+}
+
+model Visitor {
+  id             String   @id @default(cuid())
+  churchId       String
+  name           String
+  phone          String
+  email          String?
+  whatBroughtYou String?
+  visitedAt      DateTime @default(now())
+  contacted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+  @@index([visitedAt])
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  churchId  String
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  church       Church        @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  members      GroupMember[]
+  emailLogs    EmailLog[]
+
+  @@index([churchId])
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  memberId  String
+  isLeader  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, memberId])
+  @@index([groupId])
+  @@index([memberId])
+  @@index([isLeader])
+}
+
+model PrayerRequest {
+  id          String    @id @default(cuid())
+  churchId    String
+  submittedBy String
+  requestText String
+  isPrivate   Boolean   @default(false)
+  sharedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([churchId])
+  @@index([submittedBy])
+  @@index([createdAt])
+}
+
+model EmailLog {
+  id               String   @id @default(cuid())
+  churchId         String
+  sentBy           String
+  recipientType    String   // "everyone" or "group"
+  recipientGroupId String?
+  subject          String
+  body             String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  sender Member @relation(fields: [sentBy], references: [id], onDelete: Cascade)
+  group  Group? @relation(fields: [recipientGroupId], references: [id], onDelete: SetNull)
+
+  @@index([churchId])
+  @@index([sentBy])
+  @@index([createdAt])
+}
