@@ -13,6 +13,11 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+    // Allow dynamic code evaluation for Supabase in Edge Runtime
+    unstable_allowDynamic: [
+      '**/node_modules/@supabase/**/*.js',
+      '**/node_modules/@supabase/**/*.mjs',
+    ],
   },
 }
 
